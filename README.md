@@ -16,16 +16,16 @@ ldap = AutoLDAP()
 
 # method two, specified configuration
 
-ldap = AutoLDAP(conf="./path/to/autoldap.conf")
+ldap = AutoLDAP(config="./path/to/autoldap.conf")
 
 # method three, deferred bind
 
-ldap = AutoLDAP(conf="./path/to/autoldap.conf", defer=True)
+ldap = AutoLDAP(config="./path/to/autoldap.conf", defer=True)
 ldap.bind()
 
 # method four, argparse options (requires deferred bind)
 
-ldap = AutoLDAP(conf="./path/to/autoldap.conf", defer=True)
+ldap = AutoLDAP(config="./path/to/autoldap.conf", defer=True)
 parser = ldap.init_argparse()
 # ...
 # add additional arguments via argparse api.
