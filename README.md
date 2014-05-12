@@ -61,18 +61,12 @@ results = ldap.auto_search_ext_s()
 
 value = ldap.unpack_one(attrs, 'attrName')
 
-# this is a shorthand for the following (including None initialization) 
+# this is a shorthand for the following (including None initialization)
 
 value = None
 
 if 'attrName' in attrs:
   value = attrs['attrName'][0]
-
-
-
-
-
-
 
 ```
 
