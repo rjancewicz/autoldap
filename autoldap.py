@@ -41,53 +41,6 @@ except ImportError as error:
         sys.stderr.write('Warning: unable to import argparse; init_argparser and load_arguments are disabled.\n')
 
 
-'''
-    usage:
-
-    handle = LDAPAutomaticBind(defer=True)
-    argparser = handle.make_argparser([argparser])
-
-    ... argparser.add_args()
-
-    handle.load_arguments(args)
-
-    handle.bind()
-
-    - or - 
-
-    handle = LDAPAutomaticBind()
-
-    handle.search_ext_st(...)
-
-    - or - 
-
-    handle = LDAPAutomaticBind({...})
-
-    handle = LDAPAutomaticBind("config", defer=False)
-
- *******************
-
-    internal flow
-
-        __init__
-        load default configuration
-        load configuration file[s]
-        if not defer 
-            bind()
-        else
-            pass # wait
-
-        ...
-
-        make_argparser([parser])
-
-        ...
-
-        load_argparser(args)
-
-        bind()
-'''
-
 class AutoLDAP(ldapobject.SimpleLDAPObject):
 
 # configurations: 
@@ -138,17 +91,21 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         version  = 3
     '''
 
-    def __init__(self, config=None, defer=False, debug_level=0x0): 
+    def __init__(self, config=None, options=None, defer=False, debug_level=0x0): 
 
         self.debug_level = debug_level
 
         self.load_configuration(config)
 
-        if self.debug_level >= 0x1:
-            pprint(self.configuration)
+        if options is not None: 
+            self.config_options(options)
 
         if not defer:
             self.bind()
+
+    def debug_print_configuration(self):
+
+        pprint(self.configuration)
 
     # Auto Search Methods
 
@@ -239,10 +196,6 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
   
     # Configuration and Bind Methods
 
-    def set_search_base(self, base):
-        
-        self.configuration[self.CFG_BASEDN] = base
-
     def starttls(self): 
 
         starttls = self._config(self.CFG_STARTTLS).upper()
@@ -306,6 +259,10 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         else:
             raise ldap.AUTH_UNKNOWN
 
+    def rebind(self):
+
+        self.unbind_s()
+        self.bind()
 
     # argparse methods are added depending on availibility
     if 'argparse' in sys.modules:
@@ -342,6 +299,22 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
     def _config(self, cfg):
 
         return self.configuration.get(cfg, self.default_configuration[cfg])
+
+
+    def config_option(self, cfg, option):
+
+        cfg = cfg.lower()
+
+        for key in self.configuration:
+            if key.lower() == cfg:
+                self.configuration[key] = option
+                break
+
+    def config_options(self, options):
+
+        if isinstance(options, dict):
+            for cfg, value in options.iteritems():
+                self.config_option(cfg, option)
 
     # ConfigParser loading of configuration
     def load_configuration(self, config_path):
