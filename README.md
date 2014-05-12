@@ -34,6 +34,25 @@ args = parser.parse_args()
 ldap.load_arguments(args)
 ldap.bind()
 
+# addtional option for all methods options
+
+options = {
+     'URI': 'ldap://foo.example.com',
+  'basedn': 'dc=foo,dc=example,dc=com'
+}
+
+ldap = AutoLDAP(config="./path/to/autoldap.conf", options=options)
+
+# update configuration
+
+ldap.set_config('uri': 'ldap://bar.example.com')
+ldap.set_config('basedn', 'dc=bar,dc=example,dc=com')
+
+ldap.rebind()
+
+
+
+
 '''
   *** Searching ***
 '''

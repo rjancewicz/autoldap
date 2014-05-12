@@ -98,7 +98,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         self.load_configuration(config)
 
         if options is not None: 
-            self.config_options(options)
+            self.set_configs(options)
 
         if not defer:
             self.bind()
@@ -301,7 +301,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         return self.configuration.get(cfg, self.default_configuration[cfg])
 
 
-    def config_option(self, cfg, option):
+    def set_config(self, cfg, option):
 
         cfg = cfg.lower()
 
@@ -310,11 +310,11 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                 self.configuration[key] = option
                 break
 
-    def config_options(self, options):
+    def set_configs(self, options):
 
         if isinstance(options, dict):
             for cfg, value in options.iteritems():
-                self.config_option(cfg, option)
+                self.set_config(cfg, option)
 
     # ConfigParser loading of configuration
     def load_configuration(self, config_path):
