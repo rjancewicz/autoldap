@@ -34,6 +34,45 @@ args = parser.parse_args()
 ldap.load_arguments(args)
 ldap.bind()
 
+'''
+  *** Searching ***
+'''
+
+# single entry search (returns a tuple unpacked from a regular ldap.search or None)
+
+(dn,attrs) = ldap.fetch_entry('uid=test,dc=example,dc=com')
+
+# paged searches (useful for large search results)
+
+for chunk in ldap.paged_search(page_size=512):
+  for (dn, attr) in chunk:
+    print(dn)
+
+# auto_search_ext_s, search without specifying base and scope
+#  by default searches the basedn from configuration with subtree scope
+
+results = ldap.auto_search_ext_s()
+
+'''
+  *** Unpacking ***
+'''
+
+# unpack a single value (specifically the first value) from an attribute set
+
+value = ldap.unpack_one(attrs, 'attrName')
+
+# this is a shorthand for the following (including None initialization) 
+
+value = None
+
+if 'attrName' in attrs:
+  value = attrs['attrName'][0]
+
+
+
+
+
+
 
 ```
 
