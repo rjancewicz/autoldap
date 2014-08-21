@@ -27,6 +27,10 @@ except ImportError as error:
     sys.stderr.write('python-ldap is required for autoldap, install via pip or easy_install.\n');
     sys.exit(1)
 
+try: 
+    input = raw_input
+except NameError: 
+    pass
 
 try: 
     from ldap.controls.libldap import SimplePagedResultsControl
@@ -157,7 +161,36 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                             page_control.cookie = control.cookie
 
                     yield results
+    
+    def auto_suffix(self, interactive=False): 
+
+        suffix = None    
             
+        result = self.fetch_entry('', attrlist=['namingContexts'])
+        
+        if result:
+            (dn, attrs) = result
+            if 'namingContexts' in attrs:
+                contexts = attrs['namingContexts']
+                if len(contexts) == 1 or not interactive:
+                    suffix = contexts[0]
+                else:
+                    index = 0
+                    for context in contexts:
+                        print("{0}. {1}").format(index, context)
+                        index += 1
+
+                    suffix = None
+                    while suffix is None or suffix < 0 or suffix > index:
+                        suffix = input("Select Suffix: ")
+                        try: 
+                            suffix = int(suffix)
+                        except ValueError:
+                            suffix = None
+                    suffix = contexts[suffix]
+
+        return suffix
+
     def auto_search_ext_s(self, 
         base        = None, 
         scope       = ldap.SCOPE_SUBTREE, 
@@ -314,7 +347,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
         if isinstance(options, dict):
             for cfg, value in options.iteritems():
-                self.set_config(cfg, option)
+                self.set_config(cfg, value)
 
     # ConfigParser loading of configuration
     def load_configuration(self, config_path):
