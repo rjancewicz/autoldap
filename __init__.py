@@ -207,12 +207,19 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
     def fetch_entry(self, base, **search_args):
 
+        result = None
         scope = ldap.SCOPE_BASE
 
-        result = self.search_ext_s(base, scope, sizelimit = 1, **search_args)
+        try:
+            result = self.search_ext_s(base, scope, sizelimit = 1, **search_args)
 
-        if result:
-            result = result[0]
+            if result:
+                result = result[0]
+                
+        except ldap.NO_SUCH_OBJECT:
+
+            result = None
+
 
         return result
 
