@@ -21,6 +21,7 @@ except ImportError as error:
 
 try: 
     import ldap
+    import ldap.filter
     from ldap import sasl
     from ldap import ldapobject
 except ImportError as error:
@@ -191,9 +192,33 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
         return suffix
 
-    def auto_search_ext_s(self, 
-        base        = None, 
-        scope       = ldap.SCOPE_SUBTREE, 
+    def _generate_filter(self, operation ='&', **kwargs):
+        """Turn keyword arguments into an ldap filter string
+        The operation keyword specifies if this should be an "and" search or
+        an "or" search. The possible values are '&' and '|'
+        """
+        # TODO: All for ! searches?
+        if operation not in ['&', '|']
+            operation = '&'
+
+        f = ""
+
+        for attr, value in kwargs.iteritems():
+          attribute = ldap.filter.escape_filter_chars(attr)
+          value = ldap.filter.escape_filter_chars(value)
+
+          subfilter = '({0}={1})'.format(attribute, value)
+          f = '{0}{1}'.format(f, subfilter)
+
+          if len(kwargs) >= 1:
+            f = '({0}{1})'.format(operation, f)
+
+        return f
+
+    def auto_search_ext_s(self,
+        base        = None,
+        scope       = ldap.SCOPE_SUBTREE,
+        operation   = '&',
         **search_args):
 
         results = None
@@ -201,7 +226,8 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         base = base or self._config(self.CFG_BASEDN)
 
         if base:
-            results = self.search_ext_s(base, scope, **search_args)
+            f = self._generate_filter(operation=operation, **search_args)
+            results = self.search_ext_s(base, scope, filterstr=f)
 
         return results
 
