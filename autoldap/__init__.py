@@ -1,6 +1,6 @@
 #
-# autoldap 
-#   Russell J. Jancewicz - 2014-05-08 
+# autoldap
+#   Russell J. Jancewicz - 2014-05-08
 #
 #
 
@@ -11,71 +11,60 @@ import getpass
 from pprint import pprint
 
 # ConfigParser [configparser] is part of the standard library but has querks.
-try: 
-    import configparser 
+try:
+    import configparser
 except ImportError as error:
-    # ConfigParser is the original name in the 2.x builds, 
+    # ConfigParser is the original name in the 2.x builds,
     #   'import as' rename maintains python 3.x compatibility
     #   PEP 8 specifies package names should be lowercase
     import ConfigParser as configparser
 
-try: 
-    import ldap
-    from ldap import sasl
-    from ldap import ldapobject
-except ImportError as error:
-    sys.stderr.write('python-ldap is required for autoldap, install via pip or easy_install.\n');
-    sys.exit(1)
+import ldap
+import ldap.filter
+from ldap import sasl
+from ldap import ldapobject
 
-try: 
-    input = raw_input
-except NameError: 
-    pass
-
-try: 
-    from ldap.controls.libldap import SimplePagedResultsControl
-except:
-    if __debug__:
-        sys.stderr.write('Warning: unable to import ldap.controls.libldap.SimplePagedResultsControl; paged_search is disabled.\n')
+from builtins import input
+import argparse
 
 try:
-    import argparse
-except ImportError as error:
+    from ldap.controls.libldap import SimplePagedResultsControl
+except ImportError:
     if __debug__:
-        sys.stderr.write('Warning: unable to import argparse; init_argparser and load_arguments are disabled.\n')
+        sys.stderr.write('Warning: unable to import ldap.controls.libldap.SimplePagedResultsControl; paged_search is disabled.\n')
 
 
 class AutoLDAP(ldapobject.SimpleLDAPObject):
 
-# configurations: 
-    ENV_HOME     = os.path.expanduser("~")
-    CFG_HOME     = "{0}/.autoldaprc".format(ENV_HOME)
-    CFG_LOCAL    = "./autoldap.conf"
-    CFG_GLOBAL   = "/etc/autoldap/autoldap.conf"
+    # configurations:
+    ENV_HOME = os.path.expanduser("~")
+    CFG_HOME = "{0}/.autoldaprc".format(ENV_HOME)
+    CFG_LOCAL = "./autoldap.conf"
+    CFG_GLOBAL = "/etc/autoldap/autoldap.conf"
 
-    CFG_SECTION  = "AutoLDAP"
-    CFG_URI      = "URI"
-    CFG_BINDDN   = "binddn"
-    CFG_PASSWD   = "passwd"
-    CFG_PROMPT   = "prompt"
+    CFG_SECTION = "AutoLDAP"
+    CFG_URI = "URI"
+    CFG_BINDDN = "binddn"
+    CFG_PASSWD = "passwd"
+    CFG_PROMPT = "prompt"
     CFG_SASLMECH = "saslmech"
     CFG_STARTTLS = "starttls"
-    CFG_AUTH     = "auth"
-    CFG_BASEDN   = "basedn"
-    CFG_VERSION  = "version"
+    CFG_AUTH = "auth"
+    CFG_BASEDN = "basedn"
+    CFG_VERSION = "version"
 
-    SCOPE_BASE     = ldap.SCOPE_BASE
-    SCOPE_ONELEVEL = ldap.SCOPE_ONELEVEL 
-    SCOPE_SUBTREE  = ldap.SCOPE_SUBTREE
+    SCOPE_BASE = ldap.SCOPE_BASE
+    SCOPE_ONELEVEL = ldap.SCOPE_ONELEVEL
+    SCOPE_SUBTREE = ldap.SCOPE_SUBTREE
 
     default_configuration = {
         CFG_URI:     'ldapi:///',
         CFG_BINDDN:   None,
         CFG_PASSWD:   None,
         CFG_PROMPT:   False,
-        CFG_SASLMECH: 'EXTERNAL', #['GSSAPI'],
+        CFG_SASLMECH: 'EXTERNAL',  # ['GSSAPI'],
         CFG_STARTTLS: 'try',
-        CFG_AUTH:     'SASL', #['simple', 'anonymous']
+        CFG_AUTH:     'SASL',  # ['simple', 'anonymous']
         CFG_BASEDN:   None,
         CFG_VERSION:  3
     }
@@ -95,13 +84,13 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         version  = 3
     '''
 
-    def __init__(self, config=None, options=None, defer=False, debug_level=0x0): 
+    def __init__(self, config=None, options=None, defer=False, debug_level=0x0):
 
         self.debug_level = debug_level
 
         self.load_configuration(config)
 
-        if options is not None: 
+        if options is not None:
             self.set_configs(options)
 
         if not defer:
@@ -114,16 +103,17 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
     # Auto Search Methods
 
     # paged_search is only availible if the controller is available
-    #   technically we can achive this without the controller (as paged results is simple)
-    #   however it is easer to delegate the operation to the default controller.
+    # technically we can achive this without the controller
+    # (as paged results is simple) however it is easer to delegate the
+    # operation to the default controller.
     if 'SimplePagedResultsControl' in globals():
         def paged_search(self,
-            base        = None, 
-            scope       = ldap.SCOPE_SUBTREE, 
-            page_size   = 1000,
-            criticality = True,
-            serverctrls = None,
-            **search_args):
+                         base=None,
+                         scope=ldap.SCOPE_SUBTREE,
+                         page_size=1000,
+                         criticality=True,
+                         serverctrls=None,
+                         **search_args):
 
             cookie = ''
             criticality = criticality
@@ -134,26 +124,31 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                 serverctrls = []
             else:
                 serverctrls = list(serverctrls)
-            
+
             if base is None:
                 base = self._config(self.CFG_BASEDN)
 
-            if base: 
+            if base:
 
-                page_control = SimplePagedResultsControl(criticality, page_size, cookie)
+                page_control = SimplePagedResultsControl(criticality,
+                                                         page_size,
+                                                         cookie)
 
                 while initial or page_control.cookie:
                     initial = False
 
-                    try: 
-                        msgid = self.search_ext(base, scope, 
-                            serverctrls = serverctrls + list([page_control]), 
-                            **search_args)
+                    try:
+                        msgid = self.search_ext(
+                                    base,
+                                    scope,
+                                    serverctrls=(serverctrls +
+                                                 list([page_control])),
+                                    **search_args)
 
                     except ldap.LDAPError as error:
                         raise error
 
-                    #(rtype, results, msgid, sent_serverctrls)
+                    # (rtype, results, msgid, sent_serverctrls)
                     (_, results, _, controls) = self.result3(msgid)
 
                     for control in controls:
@@ -161,13 +156,13 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                             page_control.cookie = control.cookie
 
                     yield results
-    
-    def auto_suffix(self, interactive=False): 
 
-        suffix = None    
-            
+    def auto_suffix(self, interactive=False):
+
+        suffix = None
+
         result = self.fetch_entry('', attrlist=['namingContexts'])
-        
+
         if result:
             (dn, attrs) = result
             if 'namingContexts' in attrs:
@@ -183,7 +178,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                     suffix = None
                     while suffix is None or suffix < 0 or suffix > index:
                         suffix = input("Select Suffix: ")
-                        try: 
+                        try:
                             suffix = int(suffix)
                         except ValueError:
                             suffix = None
@@ -191,17 +186,42 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
         return suffix
 
-    def auto_search_ext_s(self, 
-        base        = None, 
-        scope       = ldap.SCOPE_SUBTREE, 
-        **search_args):
+    def _generate_filter(self, operation='&', **kwargs):
+        """Turn keyword arguments into an ldap filter string
+        The operation keyword specifies if this should be an "and" search or
+        an "or" search. The possible values are '&' and '|'
+        """
+        # TODO: All for ! searches?
+        if operation not in ['&', '|']:
+            operation = '&'
+
+        f = ""
+
+        for attr, value in kwargs.items():
+            attribute = ldap.filter.escape_filter_chars(attr)
+            value = ldap.filter.escape_filter_chars(value)
+
+            subfilter = '({0}={1})'.format(attribute, value)
+            f = '{0}{1}'.format(f, subfilter)
+
+            if len(kwargs) >= 1:
+                f = '({0}{1})'.format(operation, f)
+
+        return f
+
+    def auto_search_ext_s(self,
+                          base=None,
+                          scope=ldap.SCOPE_SUBTREE,
+                          operation='&',
+                          **search_args):
 
         results = None
 
         base = base or self._config(self.CFG_BASEDN)
 
         if base:
-            results = self.search_ext_s(base, scope, **search_args)
+            f = self._generate_filter(operation=operation, **search_args)
+            results = self.search_ext_s(base, scope, filterstr=f)
 
         return results
 
@@ -211,15 +231,14 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         scope = ldap.SCOPE_BASE
 
         try:
-            result = self.search_ext_s(base, scope, sizelimit = 1, **search_args)
+            result = self.search_ext_s(base, scope, sizelimit=1, **search_args)
 
             if result:
                 result = result[0]
-                
+
         except ldap.NO_SUCH_OBJECT:
 
             result = None
-
 
         return result
 
@@ -233,13 +252,12 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
             value = attrs[name][0]
 
         return value
-  
+
     # Configuration and Bind Methods
 
-    def starttls(self): 
+    def starttls(self):
 
         starttls = self._config(self.CFG_STARTTLS).upper()
-
 
         if starttls in ['TRY', 'DEMAND']:
             try:
@@ -251,11 +269,11 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
                     del self
                     raise error
 
-    def bind_anonymous(self): 
+    def bind_anonymous(self):
 
         self.simple_bind_s()
 
-    def bind_simple(self): 
+    def bind_simple(self):
 
         binddn = self._config(self.CFG_BINDDN)
         passwd = self._config(self.CFG_PASSWD)
@@ -271,7 +289,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         else:
             raise ldap.INVALID_CREDENTIALS
 
-    def bind_sasl(self): 
+    def bind_sasl(self):
 
         mech = self._config(self.CFG_SASLMECH).upper()
 
@@ -280,12 +298,12 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
         if 'GSSAPI' in mech:
             self.sasl_interactive_bind_s('', sasl.gssapi())
-                
-    def bind(self): 
+
+    def bind(self):
 
         # initialize the ldap handle for self first.
         ldapobject.SimpleLDAPObject.__init__(self, self._config(self.CFG_URI))
-        
+
         self.starttls()
 
         auth = self._config(self.CFG_AUTH).upper()
@@ -293,7 +311,7 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
         if "SASL" in auth:
             self.bind_sasl()
         elif "SIMPLE" in auth:
-            self.bind_simple() 
+            self.bind_simple()
         elif "ANON" in auth:
             self.bind_anonymous()
         else:
@@ -340,7 +358,6 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
 
         return self.configuration.get(cfg, self.default_configuration[cfg])
 
-
     def set_config(self, cfg, option):
 
         cfg = cfg.lower()
@@ -375,16 +392,11 @@ class AutoLDAP(ldapobject.SimpleLDAPObject):
             for option in self.default_configuration:
 
                 if config.has_option(self.CFG_SECTION, option):
-                    self.configuration[option] = config.get(self.CFG_SECTION, option)
+                    self.configuration[option] = config.get(self.CFG_SECTION,
+                                                            option)
 
             if config.has_option(self.CFG_SECTION, self.CFG_PROMPT):
                 try:
                     self.configuration[self.CFG_PROMPT] = config.getboolean(self.CFG_SECTION, self.CFG_PROMPT)
                 except ValueError:
                     self.configuration[self.CFG_PROMPT] = False
-
-
-
-
-
-

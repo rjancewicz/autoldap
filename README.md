@@ -5,8 +5,22 @@ Provides a simple ldap wrapper for binding and searching ldap via the python-lda
 Designed to work with python 2.5 or higher (including python 3.x)
 
 
+## Installation
+```bash
+# Install dependencies
+# Debian/Ubuntu
+sudo apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+# RedHat/CentOS/Fedora
+sudo yum install python-devel openldap-devel
+
+# Install autoldap
+pip install git+https://github.com/rjancewicz/autoldap.git
+```
+
+
 ## Example Usage:
 
+#### Instantiation
 ```python
 from autoldap import AutoLDAP
 
@@ -49,14 +63,12 @@ ldap.set_config('uri': 'ldap://bar.example.com')
 ldap.set_config('basedn', 'dc=bar,dc=example,dc=com')
 
 ldap.rebind()
+```
 
 
+#### Searching
 
-
-'''
-  *** Searching ***
-'''
-
+```python
 # single entry search (returns a tuple unpacked from a regular ldap.search or None)
 
 (dn,attrs) = ldap.fetch_entry('uid=test,dc=example,dc=com')
@@ -71,11 +83,13 @@ for chunk in ldap.paged_search(page_size=512):
 #  by default searches the basedn from configuration with subtree scope
 
 results = ldap.auto_search_ext_s()
+results = ldap.auto_search_ext_s(uid=russ)
+results = ldap.auto_search_ext_s(uid=russ)
+```
 
-'''
-  *** Unpacking ***
-'''
+#### Unpacking
 
+```python
 # unpack a single value (specifically the first value) from an attribute set
 
 value = ldap.unpack_one(attrs, 'attrName')
